@@ -26,8 +26,13 @@ jobs:
       - name: Restore project source
         shell: bash
         run: |
-          cat build-source/source.part* > homecare-er-source.b64
+          cat build-source/source.part* | tr -d '\r\n ' > homecare-er-source.b64
+          echo "Base64 bytes: $(wc -c < homecare-er-source.b64)"
+          echo "Base64 SHA256: $(sha256sum homecare-er-source.b64 | cut -d' ' -f1)"
+          test "$(wc -c < homecare-er-source.b64)" = "28712"
+          echo "c3b09458657bda0c31e145b407a76f5ee9b3aa8b05dbbf8160e641e261e9abc4  homecare-er-source.b64" | sha256sum -c -
           base64 --decode homecare-er-source.b64 > homecare-er-source.zip
+          unzip -t homecare-er-source.zip
           unzip -q homecare-er-source.zip
           test -f homecare-er-live/package.json
           test -f homecare-er-live/.env.production
