@@ -1,0 +1,59 @@
+name: Build Home Care ER AIT
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout build source branch
+        uses: actions/checkout@v4
+        with:
+          ref: build-homecare-er
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Restore project source
+        shell: bash
+        run: |
+          base64 --decode homecare-er-source.b64 > homecare-er-source.zip
+          unzip -q homecare-er-source.zip
+          test -f homecare-er-live/package.json
+          test -f homecare-er-live/.env.production
+
+      - name: Install dependencies
+        working-directory: homecare-er-live
+        run: npm install --no-audit --no-fund
+
+      - name: Build AIT
+        working-directory: homecare-er-live
+        run: npm run build
+
+      - name: Verify AIT output
+        shell: bash
+        run: |
+          AIT_FILE=$(find homecare-er-live -maxdepth 2 -type f -name '*.ait' | head -n 1)
+          if [ -z "$AIT_FILE" ]; then
+            echo 'AIT file was not generated.'
+            find homecare-er-live -maxdepth 2 -type f | sort
+            exit 1
+          fi
+          echo "AIT_FILE=$AIT_FILE" >> "$GITHUB_ENV"
+          echo "Generated: $AIT_FILE"
+          ls -lh "$AIT_FILE"
+
+      - name: Upload AIT artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: homecareer-ait
+          path: ${{ env.AIT_FILE }}
+          if-no-files-found: error
+          retention-days: 30
