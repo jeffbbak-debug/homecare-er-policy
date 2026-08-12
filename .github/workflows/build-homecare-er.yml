@@ -26,6 +26,7 @@ jobs:
       - name: Restore project source
         shell: bash
         run: |
+          cat build-source/source.part* > homecare-er-source.b64
           base64 --decode homecare-er-source.b64 > homecare-er-source.zip
           unzip -q homecare-er-source.zip
           test -f homecare-er-live/package.json
