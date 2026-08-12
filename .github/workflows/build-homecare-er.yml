@@ -35,15 +35,27 @@ jobs:
             build-source/source.part05 \
             build-source/source.part06 \
             | tr -d '\r\n ' > homecare-er-source.b64
-          echo "Base64 bytes: $(wc -c < homecare-er-source.b64)"
-          echo "Base64 SHA256: $(sha256sum homecare-er-source.b64 | cut -d' ' -f1)"
           test "$(wc -c < homecare-er-source.b64)" = "28712"
           echo "c3b09458657bda0c31e145b407a76f5ee9b3aa8b05dbbf8160e641e261e9abc4  homecare-er-source.b64" | sha256sum -c -
           base64 --decode homecare-er-source.b64 > homecare-er-source.zip
-          unzip -t homecare-er-source.zip
           unzip -q homecare-er-source.zip
           test -f homecare-er-live/package.json
           test -f homecare-er-live/.env.production
+
+      - name: Apply registered brand icon
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('homecare-er-live/granite.config.ts')
+          text = path.read_text(encoding='utf-8')
+          icon = 'https://static.toss.im/appsintoss/31187/133457d0-f71d-4295-87f9-589605a68963.png'
+          text = text.replace("icon: '',", f"icon: '{icon}',")
+          path.write_text(text, encoding='utf-8')
+          if icon not in path.read_text(encoding='utf-8'):
+              raise SystemExit('brand.icon update failed')
+          print(path.read_text(encoding='utf-8'))
+          PY
 
       - name: Install dependencies
         working-directory: homecare-er-live
@@ -63,7 +75,6 @@ jobs:
             exit 1
           fi
           echo "AIT_FILE=$AIT_FILE" >> "$GITHUB_ENV"
-          echo "Generated: $AIT_FILE"
           ls -lh "$AIT_FILE"
 
       - name: Upload AIT artifact
